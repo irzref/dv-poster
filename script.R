@@ -62,6 +62,10 @@ all_commodities_by_province_edited <- all_commodities_by_province_edited[rowSums
 idn_shape <- readOGR(dsn = "indo_shp", layer="INDONESIA_PROP")
 idn_shape_df <- fortify(idn_shape)
 
+# time zone indonesia 
+idn_tz_shape <- readOGR(dsn = "indo_tz_shp", layer="combined-shapefile")
+idn_tz_shape_df <- fortify(idn_tz_shape)
+
 # add province in the shape file dataframe
 id_province = data.frame(idn_shape$ID, idn_shape$Propinsi)
 colnames(id_province) <- c("ID","Province")
@@ -88,7 +92,7 @@ ditch_the_axes <- theme(
 map_export_volume <- ggplot(data = idn_shape_df, mapping = aes(x = long, y = lat, group = group)) + 
   coord_fixed(1.3) + 
   geom_polygon(aes(x=long,y=lat, group=group, fill=export.vol), data=idn_shape_df, color='white') +
-  guides(fill=guide_legend(title="Export Volume")) +
+  guides(fill=guide_legend(title="Export Volume in Kilogram")) +
   geom_polygon(color = "white", fill = NA) +
   geom_polygon(data = idn_tz_shape_df[idn_tz_shape_df$group!=1.2,], aes(x=long, y = lat, group = group), colour="red", fill=NA) +
   theme_bw() +
@@ -142,7 +146,7 @@ p <-
   # another trick!
   scale_y_continuous(breaks = seq(-4e+05, 3e+05, 1e+05), 
                      labels = abs(seq(-4e+05, 3e+05, 1e+05))) +
-  labs(x = "Year", y = "Volume", title = "Export Volume by Export Origin") +
+  labs(x = "Year", y = "Volume in Kilogram", title = "Export Volume by Export Origin") +
   theme(legend.position = "bottom",
         legend.title = element_blank(),
         plot.title = element_text(hjust = 0.5),
@@ -208,5 +212,5 @@ exprt_destination_by_country_top_8_commodity$CountryEng <- factor(exprt_destinat
 # plot
 ggplot(exprt_destination_by_country_top_8_commodity, aes(x = CountryEng, y = Volume, fill = Commodity)) + 
   geom_bar(stat = "identity") +
-  labs(x = "Country", title = "Top 8 Export Destinations by Export Volume 2001 - 2012") +
+  labs(x = "Country", y = "Volume in Kilogram", title = "Top 8 Export Destinations by Export Volume 2001 - 2012") +
   theme(plot.title = element_text(hjust = 0.5))
