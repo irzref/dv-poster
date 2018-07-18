@@ -24,7 +24,7 @@ View(exprt_origin[exprt_origin$KomoditiID==0,])
 # export destination
 unique(exprt_destination[c("NamaKomoditi", "KomoditiID")])
 table(exprt_destination$Negara, exprt_destination$NamaKomoditi)
-View(exprt_destination[exprt_destination$KomoditiID==0,])
+View(exprt_destination[exprt_destination$KomoditiID==0 & exprt_destination$NegaraID!=31,])
 
 
 
@@ -166,6 +166,47 @@ p
 
 
 # diagram 3
-# comparison of avg volume of  each commodity aggregated by commodity, top 10 country (stacked barchart) !!!
+# comparison of sum volume of  each commodity aggregated by commodity, top 10 country (stacked barchart) !!!
 
+# remove the "other country" 
+exprt_destination_country <- exprt_destination[exprt_destination$NegaraID!=31,]
 
+# aggregate by country and commodity
+exprt_destination_by_country_commodity <- aggregate(exprt_destination_country$Volume, by=list(Commodity=exprt_destination_country$NamaKomoditi,Country=exprt_destination_country$Negara),FUN=sum)
+colnames(exprt_destination_by_country_commodity)[3] <- "Volume"
+View(exprt_destination_by_country_commodity)
+
+# order the country by volume
+exprt_destination_by_country_all_commodity <- exprt_destination_by_country_commodity[exprt_destination_by_country_commodity$Commodity=="semua komoditi - all commodities",]
+exprt_destination_by_country_all_commodity <- exprt_destination_by_country_all_commodity[order(exprt_destination_by_country_all_commodity$Volume, decreasing = TRUE),]
+View(exprt_destination_by_country_all_commodity)
+
+# take top 8
+exprt_destination_by_country_top_8 <- exprt_destination_by_country_all_commodity[1:8,]
+View(exprt_destination_by_country_top_8)
+
+exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_commodity[is.element(exprt_destination_by_country_commodity$Country, exprt_destination_by_country_top_8$Country),]
+exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_top_8_commodity[exprt_destination_by_country_top_8_commodity$Commodity!="semua komoditi - all commodities",]
+View(exprt_destination_by_country_top_8_commodity)
+
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Cina"] <- "China"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Amerika Serikat"] <- "USA"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Hongkong"] <- "Hongkong"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Jepang"] <- "Jepan"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Malaysia"] <- "Malaysia"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Singapura"] <- "Singapore"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Taiwan"] <- "Taiwan"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Thailand"] <- "Thailand"
+
+# set the order
+exprt_destination_by_country_top_8_commodity$Total <- with(exprt_destination_by_country_top_8, Volume[match(exprt_destination_by_country_top_8_commodity$Country, Country)])
+exprt_destination_by_country_top_8_commodity_ordered <- exprt_destination_by_country_top_8_commodity[order(exprt_destination_by_country_top_8_commodity$Total, decreasing = TRUE),]
+View(exprt_destination_by_country_top_8_commodity_ordered)
+
+exprt_destination_by_country_top_8_commodity$CountryEng <- factor(exprt_destination_by_country_top_8_commodity$CountryEng, levels = unique(exprt_destination_by_country_top_8_commodity$CountryEng[order(exprt_destination_by_country_top_8_commodity$Total, decreasing = TRUE)]))
+
+# plot
+ggplot(exprt_destination_by_country_top_8_commodity, aes(x = CountryEng, y = Volume, fill = Commodity)) + 
+  geom_bar(stat = "identity") +
+  labs(x = "Country", title = "Top 8 Export Destinations by Export Volume 2001 - 2012") +
+  theme(plot.title = element_text(hjust = 0.5))
