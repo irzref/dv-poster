@@ -1,18 +1,18 @@
 setwd("/home/irza/Projects/dv-poster")
 
+library("ggplot2")
+library("rgdal")
+library(dplyr)
+
+# dataset
 exprt_origin <- read.csv("asalprovinsiekspor.csv")
 exprt_destination <- read.csv("eksporperikanannasional.csv")
-population <- read.csv2("bps-file.csv")
-
-
-library("ggplot2")
 
 
 
 # dataset analysis
 
-dim(unique(population[c("nama_item_vertical_variabel")]))
-
+# export origin
 unique(exprt_origin[c("NamaKomoditi", "KomoditiID")])
 unique(exprt_origin[c("Wilayah")])
 dim(unique(exprt_origin[c("ProvinsiID")]))
@@ -21,43 +21,151 @@ dim(unique(exprt_origin[c("NamaProvinsi")]))
 table(exprt_origin$NamaProvinsi, exprt_origin$NamaKomoditi) 
 View(exprt_origin[exprt_origin$KomoditiID==0,])
 
+# export destination
 unique(exprt_destination[c("NamaKomoditi", "KomoditiID")])
 table(exprt_destination$Negara, exprt_destination$NamaKomoditi)
 View(exprt_destination[exprt_destination$KomoditiID==0,])
 
 
 
+# diagram 1
 # comparison of fishery development between western part and middle and eastern part aggregated by each province (map)
 
+# remove the national data, get only data for each province
 all_commodities <- exprt_origin[exprt_origin$ProvinsiID!=0 & exprt_origin$KomoditiID==0,]
 View(all_commodities)
 
-all_commodities_by_province <- aggregate(all_commodities$Volume, by=list(Region=all_commodities$Wilayah,Province=all_commodities$NamaProvinsi),FUN=mean)
+# aggregate the sum for each province througout the years
+all_commodities_by_province <- aggregate(all_commodities$Volume, by=list(Region=all_commodities$Wilayah,Province=all_commodities$NamaProvinsi),FUN=sum)
 View(all_commodities_by_province)
 
-write.csv(all_commodities_by_province,file="all_commodities_by_province.csv",row.names=FALSE)
+# helper : create the csv file and manually assign the name of province the same as in shape file
+# write.csv(all_commodities_by_province,file="all_commodities_by_province.csv",row.names=FALSE)
 
+# load the manually edited all_commodities_by_province !!!
+all_commodities_by_province_edited <- read.csv("all_commodities_by_province.csv")
 
-# load the all_commodities_by_province !!!
-# merge value of all riau provinces and take average of it, set the value to the all_commodities_by_province !!!
+# create new all_commodities_by_province !!!
+all_commodities$NamaProvinsiNew <- all_commodities$NamaProvinsi
+all_commodities$NamaProvinsiNew[all_commodities$NamaProvinsiNew=='Kepulauan Riau'] <- 'Riau'
+all_commodities_by_province <- aggregate(all_commodities$Volume, by=list(Region=all_commodities$Wilayah,Province=all_commodities$NamaProvinsiNew),FUN=sum)
+
+# merge new all_commodities_by_province to edited one !!!
+all_commodities_by_province_edited$Sum.New <- with(all_commodities_by_province, x[match(all_commodities_by_province_edited$Province, Province)])
+
+# remove row with empty value in Province.New ('Sulawesi Barat') !!!
+# remove row with empty value in Sum.New ('Kepulauan Riau') !!!
+all_commodities_by_province_edited <- all_commodities_by_province_edited[rowSums(is.na(all_commodities_by_province_edited)) == 0 & all_commodities_by_province_edited$Province.New!="",]
+
 # indonesia map must be converted to heat map !!!
+# indonesia map
+idn_shape <- readOGR(dsn = "indo_shp", layer="INDONESIA_PROP")
+idn_shape_df <- fortify(idn_shape)
+
+# add province in the shape file dataframe
+id_province = data.frame(idn_shape$ID, idn_shape$Propinsi)
+colnames(id_province) <- c("ID","Province")
+id_province$id <- paste(seq.int(nrow(id_province))-1)
+# helper : create the csv file and manually assign the name of province the same as in shape file
+# write.csv(id_province,file="id_province.csv",row.names=FALSE)
+idn_shape_df$province <- with(id_province, Province[match(idn_shape_df$id, id)])
+
+# add the commodity volume sum to idn_shape_df, draw the density !!!
+idn_shape_df$export.vol <- with(all_commodities_by_province_edited, Sum.New[match(idn_shape_df$province, Province.New)])
+
+# need this to remove background and outline of graph
+ditch_the_axes <- theme(
+  axis.text = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.title = element_blank()
+)
+
+# plot the map
+# add label for each time zone and west,middle,east !!!
+map_export_volume <- ggplot(data = idn_shape_df, mapping = aes(x = long, y = lat, group = group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(aes(x=long,y=lat, group=group, fill=export.vol), data=idn_shape_df, color='white') +
+  guides(fill=guide_legend(title="Export Volume")) +
+  geom_polygon(color = "white", fill = NA) +
+  geom_polygon(data = idn_tz_shape_df[idn_tz_shape_df$group!=1.2,], aes(x=long, y = lat, group = group), colour="red", fill=NA) +
+  theme_bw() +
+  ggtitle("Export Volume of Fishery Commodities 2001 - 2012 by Export Origin") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate("text", x=105, y=-13, label= "UTC+07:00 WESTERN") + 
+  annotate("text", x=120, y=-13, label= "UTC+08:00 CENTRAL") +
+  annotate("text", x=133, y=-13, label= "UTC+09:00 EASTERN") +
+  ditch_the_axes
+
+# map_export_volume
+map_export_volume + scale_fill_gradient(trans = "log10")
 
 
 
+
+
+
+# diagram 2
 # comparison of fishery development between western part and middle and eastern part aggregated by years, region
 
-all_commodities_by_year_province <- aggregate(all_commodities$Volume, by=list(Year=all_commodities$Tahun,Region=all_commodities$Wilayah),FUN=sum)
+all_commodities_by_year_province <- aggregate(all_commodities$Volume, by=list(Year=all_commodities$Tahun,Province=all_commodities$NamaProvinsi),FUN=sum)
 View(all_commodities_by_year_province)
 
+all_commodities_by_year_province$Part <- with(all_commodities_by_province_edited, Part[match(all_commodities_by_year_province$Province, Province)])
+View(all_commodities_by_year_province)
 
-# remove the following method and use only the Part variable from all_commodities_by_province !!!
+colnames(all_commodities_by_year_province)[3] <- "Volume"
 
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Sumatera"] <- "West"
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Jawa"] <- "West"
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Kalimantan"] <- "West"
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Bali - Nusa Tenggara"] <- "East"
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Sulawesi"] <- "East"
-all_commodities_by_year_province$Region_new[all_commodities_by_year_province$Region=="Maluku - Papua"] <- "East"
+all_commodities_by_year_part <- aggregate(all_commodities_by_year_province$Volume, by=list(Year=all_commodities_by_year_province$Year,Part=all_commodities_by_year_province$Part),FUN=sum)
+colnames(all_commodities_by_year_part)[3] <- "Volume"
+View(all_commodities_by_year_part)
+
+test <- aggregate(all_commodities$Volume, by=list(Year=all_commodities$Tahun),FUN=sum)
+View(test)
+
+# plot back to back bar chart
+plotting_commodity_df <-
+  all_commodities_by_year_part %>%
+  mutate(Volume = if_else(Part == "WEST", -Volume, Volume))
+View(plotting_commodity_df)
+
+the_commodity_order <- plotting_commodity_df$Year[plotting_commodity_df$Part=="WEST"]
+
+p <- 
+  plotting_commodity_df %>% 
+  ggplot(aes(x = Year, y = Volume, group = Part, fill = Part)) +
+  geom_bar(stat = "identity", width = 0.75) +
+  coord_flip() +
+  scale_x_discrete(limits = the_commodity_order) +
+  # another trick!
+  scale_y_continuous(breaks = seq(-4e+05, 3e+05, 1e+05), 
+                     labels = abs(seq(-4e+05, 3e+05, 1e+05))) +
+  labs(x = "Year", y = "Volume", title = "Export Volume by Export Origin") +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        panel.background = element_rect(fill =  "grey90")) +
+  # reverse the order of items in legend
+  # guides(fill = guide_legend(reverse = TRUE)) +
+  # change the default colors of bars
+  scale_fill_manual(values=c("red", "blue"),
+                    name="",
+                    breaks=c("WEST", "EAST"),
+                    labels=c("WESTERN", "CENTRAL and EASTERN")) +
+  theme(legend.text = element_text(margin = margin(r=3)))
+
+p
 
 
+
+
+
+
+
+
+# diagram 3
 # comparison of avg volume of  each commodity aggregated by commodity, top 10 country (stacked barchart) !!!
+
+
