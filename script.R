@@ -146,15 +146,15 @@ p <-
   # another trick!
   scale_y_continuous(breaks = seq(-4e+05, 3e+05, 1e+05), 
                      labels = abs(seq(-4e+05, 3e+05, 1e+05))) +
-  labs(x = "Year", y = "Volume in Kilogram", title = "Export Volume by Export Origin") +
+  labs(x = "Year", y = "Volume in Kilogram", title = "Total Export Volume by Export Origin throughout 2001 - 2012") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         legend.position = "bottom",
         legend.title = element_blank(),
         legend.text = element_text(margin = margin(r=10,l=3), size=25),
-        axis.text = element_text(size=12),
+        axis.text = element_text(size=30),
         axis.ticks = element_blank(),
-        axis.title = element_text(size=15),
+        axis.title = element_text(size=30),
         axis.line.x.bottom =  element_line(size = 1, colour = "black"),
         panel.border = element_blank(),
         panel.grid = element_blank()) +
@@ -194,12 +194,19 @@ exprt_destination_by_country_top_8 <- exprt_destination_by_country_all_commodity
 
 exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_commodity[is.element(exprt_destination_by_country_commodity$Country, exprt_destination_by_country_top_8$Country),]
 exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_top_8_commodity[exprt_destination_by_country_top_8_commodity$Commodity!="semua komoditi - all commodities",]
-#View(exprt_destination_by_country_top_8_commodity)
+View(exprt_destination_by_country_top_8_commodity)
+
+exprt_destination_by_country_top_8_commodity$CommodityEng[exprt_destination_by_country_top_8_commodity$Commodity=="lainnya - others"] <- "others"
+exprt_destination_by_country_top_8_commodity$CommodityEng[exprt_destination_by_country_top_8_commodity$Commodity=="mutiara - pearl"] <- "pearl"
+exprt_destination_by_country_top_8_commodity$CommodityEng[exprt_destination_by_country_top_8_commodity$Commodity=="rumput laut - seaweed"] <- "seaweed"
+exprt_destination_by_country_top_8_commodity$CommodityEng[exprt_destination_by_country_top_8_commodity$Commodity=="tuna/cakalang/tongkol - tunas/skipjack/eastern little tuna"] <- "tunas/skipjack/eastern little tuna"
+exprt_destination_by_country_top_8_commodity$CommodityEng[exprt_destination_by_country_top_8_commodity$Commodity=="udang - shrimp"] <- "shrimp"
+
 
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Cina"] <- "China"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Amerika Serikat"] <- "USA"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Hongkong"] <- "Hongkong"
-exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Jepang"] <- "Jepan"
+exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Jepang"] <- "Japan"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Malaysia"] <- "Malaysia"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Singapura"] <- "Singapore"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Taiwan"] <- "Taiwan"
@@ -213,16 +220,16 @@ exprt_destination_by_country_top_8_commodity_ordered <- exprt_destination_by_cou
 exprt_destination_by_country_top_8_commodity$CountryEng <- factor(exprt_destination_by_country_top_8_commodity$CountryEng, levels = unique(exprt_destination_by_country_top_8_commodity$CountryEng[order(exprt_destination_by_country_top_8_commodity$Total, decreasing = TRUE)]))
 
 # plot
-ggplot(exprt_destination_by_country_top_8_commodity, aes(x = CountryEng, y = Volume, fill = Commodity)) + 
+ggplot(exprt_destination_by_country_top_8_commodity, aes(x = CountryEng, y = Volume, fill = CommodityEng)) + 
   geom_bar(stat = "identity") +
   theme_bw() +
-  labs(x = "Country", y = "Volume in Kilogram", title = "Top 8 Export Destinations by Total Export Volume 2001 - 2012") +
+  labs(x = "Country", y = "Volume in Kilogram", title = "Top 8 Export Destination Countries by Total Export Volume 2001 - 2012") +
   theme(plot.title = element_text(hjust = 0.5, size = 25),
         legend.title = element_blank(),
         legend.text = element_text(margin = margin(r=10,l=3), size=25),
-        axis.text = element_text(size=12),
+        axis.text = element_text(size=23),
         axis.ticks = element_blank(),
-        axis.title = element_text(size=15),
+        axis.title = element_text(size=25),
         axis.line.x.bottom =  element_line(size = 1, colour = "black"),
         panel.border = element_blank(),
         panel.grid = element_blank())
