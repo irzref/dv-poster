@@ -19,12 +19,12 @@ dim(unique(exprt_origin[c("ProvinsiID")]))
 unique(exprt_origin[c("NamaProvinsi")])
 dim(unique(exprt_origin[c("NamaProvinsi")]))
 table(exprt_origin$NamaProvinsi, exprt_origin$NamaKomoditi) 
-View(exprt_origin[exprt_origin$KomoditiID==0,])
+#View(exprt_origin[exprt_origin$KomoditiID==0,])
 
 # export destination
 unique(exprt_destination[c("NamaKomoditi", "KomoditiID")])
 table(exprt_destination$Negara, exprt_destination$NamaKomoditi)
-View(exprt_destination[exprt_destination$KomoditiID==0 & exprt_destination$NegaraID!=31,])
+#View(exprt_destination[exprt_destination$KomoditiID==0 & exprt_destination$NegaraID!=31,])
 
 
 
@@ -33,11 +33,11 @@ View(exprt_destination[exprt_destination$KomoditiID==0 & exprt_destination$Negar
 
 # remove the national data, get only data for each province
 all_commodities <- exprt_origin[exprt_origin$ProvinsiID!=0 & exprt_origin$KomoditiID==0,]
-View(all_commodities)
+#View(all_commodities)
 
 # aggregate the sum for each province througout the years
 all_commodities_by_province <- aggregate(all_commodities$Volume, by=list(Region=all_commodities$Wilayah,Province=all_commodities$NamaProvinsi),FUN=sum)
-View(all_commodities_by_province)
+#View(all_commodities_by_province)
 
 # helper : create the csv file and manually assign the name of province the same as in shape file
 # write.csv(all_commodities_by_province,file="all_commodities_by_province.csv",row.names=FALSE)
@@ -96,11 +96,11 @@ map_export_volume <- ggplot(data = idn_shape_df, mapping = aes(x = long, y = lat
   geom_polygon(color = "white", fill = NA) +
   geom_polygon(data = idn_tz_shape_df[idn_tz_shape_df$group!=1.2,], aes(x=long, y = lat, group = group), colour="red", fill=NA) +
   theme_bw() +
-  ggtitle("Export Volume of Fishery Commodities 2001 - 2012 by Export Origin") +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  annotate("text", x=105, y=-13, label= "UTC+07:00 WESTERN") + 
-  annotate("text", x=120, y=-13, label= "UTC+08:00 CENTRAL") +
-  annotate("text", x=133, y=-13, label= "UTC+09:00 EASTERN") +
+  ggtitle("Total Export Volume of Fishery Commodities 2001 - 2012 by Export Origin") +
+  theme(plot.title = element_text(hjust = 0.5, size = 23), legend.title=element_text(size=12), legend.text=element_text(size=12), legend.margin=margin(l = -1, unit='cm')) +
+  annotate("text", x=105, y=-13, label= "UTC+07:00 WESTERN", size = 7) + 
+  annotate("text", x=120, y=-13, label= "UTC+08:00 CENTRAL", size = 7) +
+  annotate("text", x=133, y=-13, label= "UTC+09:00 EASTERN", size = 7) +
   ditch_the_axes
 
 # map_export_volume
@@ -115,25 +115,25 @@ map_export_volume + scale_fill_gradient(trans = "log10")
 # comparison of fishery development between western part and middle and eastern part aggregated by years, region
 
 all_commodities_by_year_province <- aggregate(all_commodities$Volume, by=list(Year=all_commodities$Tahun,Province=all_commodities$NamaProvinsi),FUN=sum)
-View(all_commodities_by_year_province)
+#View(all_commodities_by_year_province)
 
 all_commodities_by_year_province$Part <- with(all_commodities_by_province_edited, Part[match(all_commodities_by_year_province$Province, Province)])
-View(all_commodities_by_year_province)
+#View(all_commodities_by_year_province)
 
 colnames(all_commodities_by_year_province)[3] <- "Volume"
 
 all_commodities_by_year_part <- aggregate(all_commodities_by_year_province$Volume, by=list(Year=all_commodities_by_year_province$Year,Part=all_commodities_by_year_province$Part),FUN=sum)
 colnames(all_commodities_by_year_part)[3] <- "Volume"
-View(all_commodities_by_year_part)
+#View(all_commodities_by_year_part)
 
 test <- aggregate(all_commodities$Volume, by=list(Year=all_commodities$Tahun),FUN=sum)
-View(test)
+#View(test)
 
 # plot back to back bar chart
 plotting_commodity_df <-
   all_commodities_by_year_part %>%
   mutate(Volume = if_else(Part == "WEST", -Volume, Volume))
-View(plotting_commodity_df)
+#View(plotting_commodity_df)
 
 the_commodity_order <- plotting_commodity_df$Year[plotting_commodity_df$Part=="WEST"]
 
@@ -147,18 +147,21 @@ p <-
   scale_y_continuous(breaks = seq(-4e+05, 3e+05, 1e+05), 
                      labels = abs(seq(-4e+05, 3e+05, 1e+05))) +
   labs(x = "Year", y = "Volume in Kilogram", title = "Export Volume by Export Origin") +
-  theme(legend.position = "bottom",
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "bottom",
         legend.title = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        panel.background = element_rect(fill =  "grey90")) +
-  # reverse the order of items in legend
-  # guides(fill = guide_legend(reverse = TRUE)) +
-  # change the default colors of bars
+        legend.text = element_text(margin = margin(r=10,l=3), size=25),
+        axis.text = element_text(size=12),
+        axis.ticks = element_blank(),
+        axis.title = element_text(size=15),
+        axis.line.x.bottom =  element_line(size = 1, colour = "black"),
+        panel.border = element_blank(),
+        panel.grid = element_blank()) +
   scale_fill_manual(values=c("red", "blue"),
                     name="",
                     breaks=c("WEST", "EAST"),
-                    labels=c("WESTERN", "CENTRAL and EASTERN")) +
-  theme(legend.text = element_text(margin = margin(r=3)))
+                    labels=c("WESTERN", "CENTRAL and EASTERN"))
 
 p
 
@@ -178,20 +181,20 @@ exprt_destination_country <- exprt_destination[exprt_destination$NegaraID!=31,]
 # aggregate by country and commodity
 exprt_destination_by_country_commodity <- aggregate(exprt_destination_country$Volume, by=list(Commodity=exprt_destination_country$NamaKomoditi,Country=exprt_destination_country$Negara),FUN=sum)
 colnames(exprt_destination_by_country_commodity)[3] <- "Volume"
-View(exprt_destination_by_country_commodity)
+#View(exprt_destination_by_country_commodity)
 
 # order the country by volume
 exprt_destination_by_country_all_commodity <- exprt_destination_by_country_commodity[exprt_destination_by_country_commodity$Commodity=="semua komoditi - all commodities",]
 exprt_destination_by_country_all_commodity <- exprt_destination_by_country_all_commodity[order(exprt_destination_by_country_all_commodity$Volume, decreasing = TRUE),]
-View(exprt_destination_by_country_all_commodity)
+#View(exprt_destination_by_country_all_commodity)
 
 # take top 8
 exprt_destination_by_country_top_8 <- exprt_destination_by_country_all_commodity[1:8,]
-View(exprt_destination_by_country_top_8)
+#View(exprt_destination_by_country_top_8)
 
 exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_commodity[is.element(exprt_destination_by_country_commodity$Country, exprt_destination_by_country_top_8$Country),]
 exprt_destination_by_country_top_8_commodity <- exprt_destination_by_country_top_8_commodity[exprt_destination_by_country_top_8_commodity$Commodity!="semua komoditi - all commodities",]
-View(exprt_destination_by_country_top_8_commodity)
+#View(exprt_destination_by_country_top_8_commodity)
 
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Cina"] <- "China"
 exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_country_top_8_commodity$Country=="Amerika Serikat"] <- "USA"
@@ -205,12 +208,21 @@ exprt_destination_by_country_top_8_commodity$CountryEng[exprt_destination_by_cou
 # set the order
 exprt_destination_by_country_top_8_commodity$Total <- with(exprt_destination_by_country_top_8, Volume[match(exprt_destination_by_country_top_8_commodity$Country, Country)])
 exprt_destination_by_country_top_8_commodity_ordered <- exprt_destination_by_country_top_8_commodity[order(exprt_destination_by_country_top_8_commodity$Total, decreasing = TRUE),]
-View(exprt_destination_by_country_top_8_commodity_ordered)
+#View(exprt_destination_by_country_top_8_commodity_ordered)
 
 exprt_destination_by_country_top_8_commodity$CountryEng <- factor(exprt_destination_by_country_top_8_commodity$CountryEng, levels = unique(exprt_destination_by_country_top_8_commodity$CountryEng[order(exprt_destination_by_country_top_8_commodity$Total, decreasing = TRUE)]))
 
 # plot
 ggplot(exprt_destination_by_country_top_8_commodity, aes(x = CountryEng, y = Volume, fill = Commodity)) + 
   geom_bar(stat = "identity") +
-  labs(x = "Country", y = "Volume in Kilogram", title = "Top 8 Export Destinations by Export Volume 2001 - 2012") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme_bw() +
+  labs(x = "Country", y = "Volume in Kilogram", title = "Top 8 Export Destinations by Total Export Volume 2001 - 2012") +
+  theme(plot.title = element_text(hjust = 0.5, size = 25),
+        legend.title = element_blank(),
+        legend.text = element_text(margin = margin(r=10,l=3), size=25),
+        axis.text = element_text(size=12),
+        axis.ticks = element_blank(),
+        axis.title = element_text(size=15),
+        axis.line.x.bottom =  element_line(size = 1, colour = "black"),
+        panel.border = element_blank(),
+        panel.grid = element_blank())
